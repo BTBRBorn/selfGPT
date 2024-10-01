@@ -1,2 +1,4 @@
 *.ipynb
 *.txt
+*.pickle
+__pycache__/
