@@ -44,8 +44,17 @@ class BaseTokenizer:
         self.encoding = encoding
         self.vocab = {}
         self.merges = {}
+        self._special_tokens = {}
 
-    def train(self, text, verbose=False):
+    #Setting special tokens will only affect decode method.
+    #Right now Tokenizer classes' encode function doesn't treat special tokens differently 
+    def set_special_tokens(self, special_tokens_dict:dict[int, str]):
+        for idx, token in special_tokens_dict.items():
+            self.vocab[idx] = token.encode(encoding=self.encoding)
+            self._special_tokens[token] = idx
+            self.vocab_size += 1
+
+    def train(self, text, special_tokens:list[str] = ['<|endoftext|>'], verbose=False):
         tokens = text.encode(encoding=self.encoding)
         num_merges = self.vocab_size - 256
         self.vocab = {idx:bytes([idx]) for idx in range(256)}
@@ -59,9 +68,15 @@ class BaseTokenizer:
             self.vocab[idx] = self.vocab[pair[0]] + self.vocab[pair[1]]
             if verbose:
                 print(f'Byte pair {pair} merged into {idx}')
+
+        special_tokens_dict = {}
+        for i, token in enumerate(special_tokens):
+            special_tokens_dict[self.vocab_size + i] = token
+        self.set_special_tokens(special_tokens_dict)
+            
         return tokens
-    
-    def encode(self, text):
+    #To match tiktoken library's API method has named encode_ordinary instead encode    
+    def encode_ordinary(self, text):
         tokens = text.encode(encoding=self.encoding)
         while len(tokens) >= 2:
             stats = {}
@@ -100,7 +115,7 @@ class RegexTokenizer(BaseTokenizer):
         self.regex_pattern = regex_pattern
         self.compiled_pattern = re.compile(self.regex_pattern)
 
-    def train(self, text:str, verbose=False):
+    def train(self, text:str, special_tokens:list[str] = ['<|endoftext|>'], verbose=False):
         text_chunks = re.findall(self.compiled_pattern, text)
         token_chunks = [list(chunk.encode(encoding=self.encoding)) for chunk in text_chunks]
         num_merges = self.vocab_size - 256
@@ -117,7 +132,14 @@ class RegexTokenizer(BaseTokenizer):
             self.vocab[idx] = self.vocab[pair[0]] + self.vocab[pair[1]]
             if verbose:
                 print(f'Byte pair {pair} is merged into {idx}')
+
         tokens = []
         for chunk in token_chunks:
             tokens.extend(chunk)
+
+        special_tokens_dict = {}
+        for i, token in enumerate(special_tokens):
+            special_tokens_dict[self.vocab_size + i] = token
+        self.set_special_tokens(special_tokens_dict)
+         
         return tokens
