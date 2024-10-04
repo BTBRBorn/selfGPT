@@ -83,11 +83,14 @@ if __name__ == '__main__':
                 NUM_TOKENS = 0
                 tokens_list = []
 
-chunk_path = data_path / Path(f'shard_{NUM_SHARD}.npy')
-shard = np.concat(tokens_list)
-meta_data.append({'num_shard':NUM_SHARD, 'shard_size':NUM_TOKENS})
-np.save(chunk_path, shard)
+    chunk_path = data_path / Path(f'shard_{NUM_SHARD}.npy')
+    shard = np.concat(tokens_list)
+    meta_data.append({'num_shard':NUM_SHARD, 'shard_size':NUM_TOKENS})
+    np.save(chunk_path, shard)
 
-meta_data_path = data_path / Path('meta_data.pickle')
-with open(meta_data_path, 'wb') as handle:
-    pickle.dump(meta_data, handle)
+    meta_data_path = data_path / Path('meta_data.pickle')
+    sorted(meta_data, key=lambda x: x['num_shard'])
+    for d in meta_data:
+        d['path'] = (Path('data/') / Path(f'shard_{d["num_shard"]}.npy')).absolute()
+    with open(meta_data_path, 'wb') as handle:
+        pickle.dump(meta_data, handle)

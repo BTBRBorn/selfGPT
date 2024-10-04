@@ -21,7 +21,7 @@ class MaskedSelfAttention(nn.Module):
         V = V.view(B, T, self.config.n_head, self.config.head_size).transpose(1,2)#Q: (B, nh, T, hs)
 
         att = (Q @ K.transpose(-1,-2)) / (math.sqrt(self.config.head_size))# (B, nh, T, T)
-        att.masked_fill(self.tril[:T, :T]==0, float('-inf'))# (B, nh, T, T)
+        att = att.masked_fill(self.tril[:T, :T]==0, float('-inf'))# (B, nh, T, T)
         att = F.softmax(att, dim=-1)# (B, nh, T, T)
         y = att @ V #(B, nh, T, hs)
         y = y.transpose(1,2).reshape(B, T, C)
