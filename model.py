@@ -65,8 +65,25 @@ class GPT(nn.Module):
 
     def forward(self, x:torch.Tensor):
         B, T = x.size()
-        x = self.tok_emb(x) + self.pos_emb(self.pos_inx) # tok_emb:(B,T,C), pos_emb:(T,C) -> x:(B,T,C)
+        x = self.tok_emb(x) + self.pos_emb(self.pos_inx[:T]) # tok_emb:(B,T,C), pos_emb:(T,C) -> x:(B,T,C)
         for block in self.blocks:
             x = block(x)
         x = self.ln(x)
         return self.lm_head(x)
+
+    def generate(self, text:str, tokenizer, num_sequence: int = 5, num_generate: int = 100):
+        self.eval()
+        with torch.inference_mode():
+            tokens = torch.tensor(tokenizer.encode_ordinary(text), dtype=torch.long, device=self.config.device)
+            tokens = tokens.repeat(num_sequence).view(num_sequence, -1)
+            for _ in range(num_generate):
+                logits = self(tokens)
+                logits = logits[:, -1, :]
+                probs = F.softmax(logits, dim=-1)
+                probs_topk = torch.topk(probs, k=num_sequence).indices[0]
+                tokens = torch.cat([tokens, probs_topk.view(num_sequence, -1)], dim=-1)
+
+            for i in range(len(tokens)):
+                print('-'*50)
+                print(tokenizer.decode(tokens[i].tolist()))
+                print('-'*50)

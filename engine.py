@@ -1,6 +1,7 @@
 import torch
 import torch.nn.functional as F
 from tqdm.auto import tqdm
+import time
 
 def train_step(model,
                train_iter,
@@ -44,6 +45,7 @@ def val_step(model,
             loss = F.cross_entropy(logits.view(config.batch_size*config.block_size, config.vocab_size),
                                    y.view(config.batch_size*config.block_size))
             total_loss += loss.item()
+    model.train()
     return total_loss / config.val_iter
 
 def train(model,
@@ -56,16 +58,27 @@ def train(model,
 
     results = {'train_loss': [], 'val_loss': []}
 
+    num_tokens = config.batch_size * config.block_size
     for i in tqdm(range(config.max_iter)):
+        start = time.time()
         train_loss = train_step(model, train_iter, train_dataloader, optimizer, config)
+        #torch.cuda.synchronize()
+        end = time.time()
+        num_tokens_per_sec = num_tokens/(end-start)
         if i % config.print_intervals == 0:
             val_loss = val_step(model, val_iter, val_dataloader, config)
             results['train_loss'].append(train_loss)
             results['val_loss'].append(val_loss)
-            print(f"Train Loss: {results['train_loss'][-1]}, Val Loss: {results['val_loss'][-1]}")
-
-    print(f"Train Loss: {results['train_loss'][-1]}, Val Loss: {results['val_loss'][-1]}")
+            print_str = f"Iter: {i}, Train Loss: {results['train_loss'][-1]}, " + \
+                        f"Val Loss: {results['val_loss'][-1]}, token_per_sec: {num_tokens_per_sec:.2f}"
+            print(print_str)
+    #If already not printed, print the last result and add them to results dict
+    if i % config.print_intervals != 0:
+        val_loss = val_step(model, val_iter, val_dataloader, config)
+        results['train_loss'].append(train_loss)
+        results['val_loss'].append(val_loss)
+        print_str = f"Iter: {i}, Train Loss: {results['train_loss'][-1]}, " + \
+                    f"Val Loss: {results['val_loss'][-1]}, token_per_sec: {num_tokens_per_sec:.2f}"
+        print(print_str)
 
     return results
-
-    

@@ -2,16 +2,18 @@ import model
 from dataclasses import dataclass
 import torch
 from pathlib import Path
-import tiktoken
 import torch.nn.functional as F
 import get_dataloader
 import engine
 import argparse
 import pickle
+import tiktoken
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--batch_size', type=int, default=32)
+
+parser.add_argument('--learning_rate', type=float, default=3e-4)
 parser.add_argument('--max_iter', type=int, default=500)
+parser.add_argument('--batch_size', type=int, default=32)
 parser.add_argument('--n_layer', type=int, default=4)
 parser.add_argument('--vocab_size', type=int, default=50257)
 parser.add_argument('--block_size', type=int, default=128)
@@ -30,6 +32,7 @@ print('-'*50)
 
 @dataclass
 class Config:
+    learning_rate: float = args.learning_rate
     max_iter: int = args.max_iter
     batch_size: int = args.batch_size
     n_layer: int = args.n_layer
@@ -48,6 +51,11 @@ config = Config()
 
 gpt = model.GPT(config).to(device)
 print('-'*50)
+print('Model Description:')
+print(gpt)
+print('-'*50)
+
+print('-'*50)
 print('Total number of parameters:', sum([p.numel() for p in gpt.parameters()]))
 print('-'*50)
 
@@ -59,6 +67,10 @@ train_dataloader, val_dataloader = get_dataloader.create_dataloaders(meta_data, 
 train_iter = iter(train_dataloader)
 val_iter = iter(val_dataloader)
 
-optimizer = torch.optim.AdamW(gpt.parameters(), lr=3e-4)
+optimizer = torch.optim.AdamW(gpt.parameters(), lr=config.learning_rate)
 
 gpt_results = engine.train(gpt, train_iter, val_iter, train_dataloader, val_dataloader, optimizer, config) 
+
+tokenizer = tiktoken.get_encoding('gpt2')
+
+gpt.generate('This is a Language Model:', tokenizer)
