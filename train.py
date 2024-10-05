@@ -59,11 +59,17 @@ checkpoint_path = Path(config.checkpoint_path)
 if not checkpoint_path.exists():
     checkpoint_path.mkdir()
 
+#Whether or not resuming the training from a checkpoint
 if not config.resume_checkpoint:
     gpt = model.GPT(config).to(device)
-    optimizer = torch.optim.AdamW(gpt.parameters(), lr=config.learning_rate)
+    optimizer = torch.optim.Adam(gpt.parameters(), lr=config.learning_rate)
+    results = {'train_loss': [], 'val_loss': []}
 else:
-    gpt, optimizer, config = utils.load_checkpoint(checkpoint_path / Path('checkpoint.tar'))
+    return_dict = utils.load_checkpoint(checkpoint_path / Path('checkpoint.tar'))
+    gpt = return_dict['model']
+    optimizer = return_dict['optimizer']
+    config = return_dict['config']
+    results = return_dict['results']
 
 print('-'*50)
 print('Model Description:')
@@ -82,9 +88,10 @@ train_dataloader, val_dataloader = get_dataloader.create_dataloaders(meta_data, 
 train_iter = iter(train_dataloader)
 val_iter = iter(val_dataloader)
 
-gpt_results = engine.train(gpt, train_iter, val_iter, train_dataloader, val_dataloader, optimizer, config) 
+gpt_results = engine.train(gpt, train_iter, val_iter, train_dataloader, val_dataloader, optimizer, config, results) 
 
-utils.save_checkpoint(checkpoint_path / Path('checkpoint.tar'), gpt, optimizer, config)
+utils.save_checkpoint(checkpoint_path / Path('checkpoint.tar'), gpt, optimizer, config, gpt_results)
 
+#Generate text with the model. By default it will generate 5 different versions.
 tokenizer = tiktoken.get_encoding('gpt2')
-gpt.generate('This is a Language Model:', tokenizer)
+gpt.generate('Capital of France is ', tokenizer)

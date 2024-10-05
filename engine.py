@@ -54,9 +54,8 @@ def train(model,
           train_dataloader,
           val_dataloader,
           optimizer,
-          config):
-
-    results = {'train_loss': [], 'val_loss': []}
+          config,
+          results):
 
     num_tokens = config.batch_size * config.block_size
     for i in tqdm(range(config.max_iter)):
