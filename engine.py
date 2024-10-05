@@ -62,7 +62,7 @@ def train(model,
     for i in tqdm(range(config.max_iter)):
         start = time.time()
         train_loss = train_step(model, train_iter, train_dataloader, optimizer, config)
-        #torch.cuda.synchronize()
+        torch.cuda.synchronize()
         end = time.time()
         num_tokens_per_sec = num_tokens/(end-start)
         if i % config.print_intervals == 0:
@@ -70,7 +70,7 @@ def train(model,
             results['train_loss'].append(train_loss)
             results['val_loss'].append(val_loss)
             print_str = f"Iter: {i}, Train Loss: {results['train_loss'][-1]}, " + \
-                        f"Val Loss: {results['val_loss'][-1]}, token_per_sec: {num_tokens_per_sec:.2f}"
+                        f"Val Loss: {results['val_loss'][-1]}, tokens/sec: {num_tokens_per_sec:.2f}"
             print(print_str)
     #If already not printed, print the last result and add them to results dict
     if i % config.print_intervals != 0:
@@ -78,7 +78,7 @@ def train(model,
         results['train_loss'].append(train_loss)
         results['val_loss'].append(val_loss)
         print_str = f"Iter: {i}, Train Loss: {results['train_loss'][-1]}, " + \
-                    f"Val Loss: {results['val_loss'][-1]}, token_per_sec: {num_tokens_per_sec:.2f}"
+                    f"Val Loss: {results['val_loss'][-1]}, tokens/sec: {num_tokens_per_sec:.2f}"
         print(print_str)
 
     return results

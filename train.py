@@ -8,6 +8,7 @@ import engine
 import argparse
 import pickle
 import tiktoken
+import utils
 
 parser = argparse.ArgumentParser()
 
@@ -20,9 +21,12 @@ parser.add_argument('--block_size', type=int, default=128)
 parser.add_argument('--n_head', type=int, default=8)
 parser.add_argument('--head_size', type=int, default=8)
 parser.add_argument('--data_path', type=str, default='data/')
+parser.add_argument('--checkpoint_path', type=str, default='checkpoints/')
 parser.add_argument('--dataloader_num_workers', type=int, default=4)
 parser.add_argument('--val_iter', type=int, default=100)
 parser.add_argument('--print_intervals', type=int, default=100)
+parser.add_argument('--resume_checkpoint', type=bool, default=False)
+
 args = parser.parse_args()
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -40,16 +44,27 @@ class Config:
     block_size: int = args.block_size
     n_head: int = args.n_head
     head_size: int = args.head_size
-    data_path: str = Path(args.data_path)
+    data_path: str = args.data_path
+    checkpoint_path: str = args.checkpoint_path
     dataloader_num_workers: int = args.dataloader_num_workers
     val_iter: int = args.val_iter
     print_intervals: int = args.print_intervals
+    resume_checkpoint: bool = args.resume_checkpoint
     n_embd: int = n_head*head_size
     device: str = device
 
 config = Config()
 
-gpt = model.GPT(config).to(device)
+checkpoint_path = Path(config.checkpoint_path)
+if not checkpoint_path.exists():
+    checkpoint_path.mkdir()
+
+if not config.resume_checkpoint:
+    gpt = model.GPT(config).to(device)
+    optimizer = torch.optim.AdamW(gpt.parameters(), lr=config.learning_rate)
+else:
+    gpt, optimizer, config = utils.load_checkpoint(checkpoint_path / Path('checkpoint.tar'))
+
 print('-'*50)
 print('Model Description:')
 print(gpt)
@@ -67,10 +82,9 @@ train_dataloader, val_dataloader = get_dataloader.create_dataloaders(meta_data, 
 train_iter = iter(train_dataloader)
 val_iter = iter(val_dataloader)
 
-optimizer = torch.optim.AdamW(gpt.parameters(), lr=config.learning_rate)
-
 gpt_results = engine.train(gpt, train_iter, val_iter, train_dataloader, val_dataloader, optimizer, config) 
 
-tokenizer = tiktoken.get_encoding('gpt2')
+utils.save_checkpoint(checkpoint_path / Path('checkpoint.tar'), gpt, optimizer, config)
 
+tokenizer = tiktoken.get_encoding('gpt2')
 gpt.generate('This is a Language Model:', tokenizer)

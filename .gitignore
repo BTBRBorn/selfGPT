@@ -3,3 +3,4 @@
 *.pickle
 data/
 __pycache__/
+checkpoints/
