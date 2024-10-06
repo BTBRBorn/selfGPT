@@ -26,13 +26,11 @@ parser.add_argument('--dataloader_num_workers', type=int, default=4)
 parser.add_argument('--val_iter', type=int, default=100)
 parser.add_argument('--print_intervals', type=int, default=100)
 parser.add_argument('--resume_checkpoint', type=bool, default=False)
+parser.add_argument('--verbose', type=int, default=1)
 
 args = parser.parse_args()
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-print('-'*50)
-print(f'Device: {device}')
-print('-'*50)
 
 @dataclass
 class Config:
@@ -50,6 +48,7 @@ class Config:
     val_iter: int = args.val_iter
     print_intervals: int = args.print_intervals
     resume_checkpoint: bool = args.resume_checkpoint
+    verbose: int = args.verbose
     n_embd: int = n_head*head_size
     device: str = device
 
@@ -65,20 +64,30 @@ if not config.resume_checkpoint:
     optimizer = torch.optim.Adam(gpt.parameters(), lr=config.learning_rate)
     results = {'train_loss': [], 'val_loss': []}
 else:
-    return_dict = utils.load_checkpoint(checkpoint_path / Path('checkpoint.tar'))
+    return_dict = utils.load_checkpoint(checkpoint_path / Path('checkpoint.tar'), config.learning_rate)
     gpt = return_dict['model']
     optimizer = return_dict['optimizer']
-    config = return_dict['config']
     results = return_dict['results']
 
-print('-'*50)
-print('Model Description:')
-print(gpt)
-print('-'*50)
+if config.verbose:
 
-print('-'*50)
-print('Total number of parameters:', sum([p.numel() for p in gpt.parameters()]))
-print('-'*50)
+    print('-'*50)
+    print(f'Device: {device}')
+    print('-'*50)
+
+    print('-'*50)
+    print('Model Description:')
+    print(gpt)
+    print('-'*50)
+
+    print('-'*50)
+    print('Total number of parameters:', sum([p.numel() for p in gpt.parameters()]))
+    print('-'*50)
+
+    print('-'*50)
+    print('Optimizer Description:')
+    print(optimizer)
+    print('-'*50)
 
 #Get the meta_data from data/ folder
 with open(Path(config.data_path) / Path('meta_data.pickle'), 'rb') as handle:
