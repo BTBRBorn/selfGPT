@@ -60,8 +60,25 @@ class GPT(nn.Module):
         self.pos_emb = nn.Embedding(config.block_size, config.n_embd)
         self.blocks = nn.ModuleList([Block(config) for _ in range(config.n_layer)])
         self.ln = nn.LayerNorm(config.n_embd)
-        self.lm_head = nn.Linear(config.n_embd, config.vocab_size)
+        self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
+        
+        #lm_head and tok_emb will share the weights
+        #this could increase the performance slightly and reduce the parameter count
+        self.tok_emb.weight = self.lm_head.weight
         self.register_buffer('pos_inx', torch.arange(config.block_size, dtype=torch.long))
+
+        #Initialize the weights
+        self.apply(self._init_weights)
+
+    def _init_weights(self, module: nn.Linear):
+        if isinstance(module, nn.Linear):
+            in_features = module.in_features
+            std = 1 / (in_features**0.5)
+            torch.nn.init.normal_(module.weight, mean=0.0, std=std)
+            if module.bias is not None:
+                torch.nn.init.zeros_(module.bias)
+        elif isinstance(module, nn.Embedding):
+            torch.nn.init.normal_(module.weight, mean=0.0, std=1 / (self.config.n_embd**0.5))
 
     def forward(self, x:torch.Tensor):
         B, T = x.size()

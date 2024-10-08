@@ -108,7 +108,6 @@ class BaseTokenizer:
             if hasattr(self, att_name):
                 self.__dict__[att_name] = loaded_tok.__dict__[att_name]
 
-
 class RegexTokenizer(BaseTokenizer):
     def __init__(self, vocab_size, encoding='utf-8', regex_pattern=GPT4_SPLIT_PATTERN):
         super().__init__(vocab_size, encoding)
