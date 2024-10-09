@@ -16,10 +16,12 @@ parser.add_argument('--learning_rate', type=float, default=3e-4)
 parser.add_argument('--max_iter', type=int, default=500)
 parser.add_argument('--batch_size', type=int, default=16)
 parser.add_argument('--n_layer', type=int, default=8)
-parser.add_argument('--vocab_size', type=int, default=50257)
-parser.add_argument('--block_size', type=int, default=128)
-parser.add_argument('--n_head', type=int, default=8)
-parser.add_argument('--head_size', type=int, default=16)
+#default tokenizer gpt2 has a vocab_size of 50257 but 50304 is divisible by 2,8,16,32 so it is
+#better in terms of cuda optimization
+parser.add_argument('--vocab_size', type=int, default=50304)
+parser.add_argument('--block_size', type=int, default=256)
+parser.add_argument('--n_head', type=int, default=6)
+parser.add_argument('--head_size', type=int, default=64)
 parser.add_argument('--data_path', type=str, default='data/')
 parser.add_argument('--checkpoint_path', type=str, default='checkpoints/')
 parser.add_argument('--dataloader_num_workers', type=int, default=4)
@@ -27,6 +29,7 @@ parser.add_argument('--val_iter', type=int, default=100)
 parser.add_argument('--print_intervals', type=int, default=100)
 parser.add_argument('--resume_checkpoint', type=int, default=0)
 parser.add_argument('--verbose', type=int, default=1)
+parser.add_argument('--compile_model', type=int, default=0)
 
 args = parser.parse_args()
 
@@ -52,6 +55,7 @@ class Config:
     print_intervals: int = args.print_intervals
     resume_checkpoint: bool = args.resume_checkpoint
     verbose: int = args.verbose
+    compile_model: int = args.compile_model
     n_embd: int = n_head*head_size
     device: str = device
 
@@ -91,6 +95,12 @@ if config.verbose:
     print('Optimizer Description:')
     print(optimizer)
     print('-'*50)
+
+#compilation requires extra time so if you are only test/develop
+#wouldn't recommend it. But when it is time to really train
+#it could speed up the process about 2x
+if config.compile_model:
+    gpt = torch.compile(gpt)
 
 #Get the meta_data from data/ folder
 with open(Path(config.data_path) / Path('meta_data.pickle'), 'rb') as handle:

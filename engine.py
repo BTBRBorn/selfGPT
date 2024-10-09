@@ -23,8 +23,9 @@ def train_step(model,
         loss = F.cross_entropy(logits.view(config.batch_size*config.block_size, config.vocab_size),
                             y.view(config.batch_size*config.block_size))
     loss.backward()
+    norm = torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
     optimizer.step()
-    return loss.item()
+    return loss.item(), norm
 
 def val_step(model, 
              val_iter,
@@ -64,7 +65,7 @@ def train(model,
     total_seconds = 0
     for i in tqdm(range(config.max_iter)):
         start = time.time()
-        train_loss = train_step(model, train_iter, train_dataloader, optimizer, config)
+        train_loss, norm = train_step(model, train_iter, train_dataloader, optimizer, config)
         torch.cuda.synchronize()
         end = time.time()
         total_tokens += num_tokens
@@ -76,7 +77,8 @@ def train(model,
             results['train_loss'].append(train_loss)
             results['val_loss'].append(val_loss)
             print_str = f"Iter: {i}, Train Loss: {results['train_loss'][-1]}, " + \
-                        f"Val Loss: {results['val_loss'][-1]}, tokens/sec: {tokens_per_sec:.2f}"
+                        f"Val Loss: {results['val_loss'][-1]}, tokens/sec: {tokens_per_sec:.2f} " + \
+                        f"Norm: {norm:.2f}"
             print(print_str)
     #If already not printed, print the last result and add them to results dict
     if i % config.print_intervals != 0:
@@ -85,7 +87,8 @@ def train(model,
         results['train_loss'].append(train_loss)
         results['val_loss'].append(val_loss)
         print_str = f"Iter: {i}, Train Loss: {results['train_loss'][-1]}, " + \
-                    f"Val Loss: {results['val_loss'][-1]}, tokens/sec: {tokens_per_sec:.2f}"
+                    f"Val Loss: {results['val_loss'][-1]}, tokens/sec: {tokens_per_sec:.2f} " + \
+                    f"Norm: {norm:.2f}"
         print(print_str)
 
     return results

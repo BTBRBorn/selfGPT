@@ -15,7 +15,7 @@ class MaskedSelfAttention(nn.Module):
         self.proj.RESIDUAL_INIT_FLAG = 1
         self.register_buffer('tril', torch.tril(torch.ones((config.block_size, config.block_size))))
 
-    def forward(self, x:torch.Tensor):
+    def forward(self, x:torch.Tensor, flash_attention=True):
         B, T, C = x.size()
         QKV = self.e_proj(x)#(B, T, 3C)
         Q, K, V = QKV.split(dim=-1, split_size=self.config.n_embd) #(B, T, C), (B, T, C), (B, T, C)
@@ -23,11 +23,17 @@ class MaskedSelfAttention(nn.Module):
         Q = Q.view(B, T, self.config.n_head, self.config.head_size).transpose(1,2)#Q: (B, nh, T, hs)
         K = K.view(B, T, self.config.n_head, self.config.head_size).transpose(1,2)#Q: (B, nh, T, hs)
         V = V.view(B, T, self.config.n_head, self.config.head_size).transpose(1,2)#Q: (B, nh, T, hs)
+        if not flash_attention:
+            att = (Q @ K.transpose(-1,-2)) / (math.sqrt(self.config.head_size))# (B, nh, T, T)
+            att = att.masked_fill(self.tril[:T, :T]==0, float('-inf'))# (B, nh, T, T)
+            att = F.softmax(att, dim=-1)# (B, nh, T, T)
+            y = att @ V #(B, nh, T, hs)
 
-        att = (Q @ K.transpose(-1,-2)) / (math.sqrt(self.config.head_size))# (B, nh, T, T)
-        att = att.masked_fill(self.tril[:T, :T]==0, float('-inf'))# (B, nh, T, T)
-        att = F.softmax(att, dim=-1)# (B, nh, T, T)
-        y = att @ V #(B, nh, T, hs)
+        #There is no reason not to use flash attention as far as I know
+        #I keeping above code for experimentation
+        else:
+            y = F.scaled_dot_product_attention(Q, K, V, is_causal=True)
+
         y = y.transpose(1,2).reshape(B, T, C)
 
         return self.proj(y)
