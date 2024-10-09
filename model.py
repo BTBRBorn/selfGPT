@@ -9,6 +9,10 @@ class MaskedSelfAttention(nn.Module):
         self.config = config
         self.e_proj = nn.Linear(config.n_embd, 3*config.n_embd)
         self.proj = nn.Linear(config.n_embd, config.n_embd)
+
+        #Add a flag for residual stream initialization
+        assert not hasattr(self.proj, 'RESIDUAL_INIT_FLAG')
+        self.proj.RESIDUAL_INIT_FLAG = 1
         self.register_buffer('tril', torch.tril(torch.ones((config.block_size, config.block_size))))
 
     def forward(self, x:torch.Tensor):
@@ -34,6 +38,10 @@ class MLP(nn.Module):
         self.linear = nn.Linear(config.n_embd, 4*config.n_embd)
         self.gelu = nn.GELU()
         self.proj = nn.Linear(4*config.n_embd, config.n_embd)
+
+        #Add a flag for residual stream initialization
+        assert not hasattr(self.proj, 'RESIDUAL_INIT_FLAG')
+        self.proj.RESIDUAL_INIT_FLAG = 1
     def forward(self, x):
         return self.proj(self.gelu(self.linear(x)))
 
@@ -73,7 +81,9 @@ class GPT(nn.Module):
     def _init_weights(self, module: nn.Linear):
         if isinstance(module, nn.Linear):
             in_features = module.in_features
-            std = 1 / (in_features**0.5)
+            std = in_features**-0.5
+            if hasattr(module, 'RESIDUAL_INIT_FLAG'):
+                std *= (2*self.config.n_layer)**-0.5
             torch.nn.init.normal_(module.weight, mean=0.0, std=std)
             if module.bias is not None:
                 torch.nn.init.zeros_(module.bias)

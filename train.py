@@ -32,6 +32,9 @@ args = parser.parse_args()
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
+#Use tf32 precision for matrix multiplication
+torch.set_float32_matmul_precision('high')
+
 @dataclass
 class Config:
     learning_rate: float = args.learning_rate

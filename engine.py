@@ -18,9 +18,10 @@ def train_step(model,
     x, y = x.to(config.device), y.to(config.device)
 
     optimizer.zero_grad()
-    logits = model(x)
-    loss = F.cross_entropy(logits.view(config.batch_size*config.block_size, config.vocab_size),
-                           y.view(config.batch_size*config.block_size))
+    with torch.autocast(device_type=config.device, dtype=torch.bfloat16): #Mixed Precision
+        logits = model(x)
+        loss = F.cross_entropy(logits.view(config.batch_size*config.block_size, config.vocab_size),
+                            y.view(config.batch_size*config.block_size))
     loss.backward()
     optimizer.step()
     return loss.item()
@@ -41,9 +42,10 @@ def val_step(model,
     model.eval()
     with torch.inference_mode():
         for _ in range(config.val_iter):
-            logits = model(x)
-            loss = F.cross_entropy(logits.view(config.batch_size*config.block_size, config.vocab_size),
-                                   y.view(config.batch_size*config.block_size))
+            with torch.autocast(device_type=config.device, dtype=torch.bfloat16):#Mixed Precision
+                logits = model(x)
+                loss = F.cross_entropy(logits.view(config.batch_size*config.block_size, config.vocab_size),
+                                    y.view(config.batch_size*config.block_size))
             total_loss += loss.item()
     model.train()
     return total_loss / config.val_iter
@@ -58,26 +60,32 @@ def train(model,
           results):
 
     num_tokens = config.batch_size * config.block_size
+    total_tokens = 0
+    total_seconds = 0
     for i in tqdm(range(config.max_iter)):
         start = time.time()
         train_loss = train_step(model, train_iter, train_dataloader, optimizer, config)
         torch.cuda.synchronize()
         end = time.time()
-        num_tokens_per_sec = num_tokens/(end-start)
+        total_tokens += num_tokens
+        total_seconds += end-start
         if i % config.print_intervals == 0:
+            tokens_per_sec = total_tokens / total_seconds
+            total_tokens, total_seconds = 0, 0
             val_loss = val_step(model, val_iter, val_dataloader, config)
             results['train_loss'].append(train_loss)
             results['val_loss'].append(val_loss)
             print_str = f"Iter: {i}, Train Loss: {results['train_loss'][-1]}, " + \
-                        f"Val Loss: {results['val_loss'][-1]}, tokens/sec: {num_tokens_per_sec:.2f}"
+                        f"Val Loss: {results['val_loss'][-1]}, tokens/sec: {tokens_per_sec:.2f}"
             print(print_str)
     #If already not printed, print the last result and add them to results dict
     if i % config.print_intervals != 0:
+        tokens_per_sec = total_tokens / total_seconds
         val_loss = val_step(model, val_iter, val_dataloader, config)
         results['train_loss'].append(train_loss)
         results['val_loss'].append(val_loss)
         print_str = f"Iter: {i}, Train Loss: {results['train_loss'][-1]}, " + \
-                    f"Val Loss: {results['val_loss'][-1]}, tokens/sec: {num_tokens_per_sec:.2f}"
+                    f"Val Loss: {results['val_loss'][-1]}, tokens/sec: {tokens_per_sec:.2f}"
         print(print_str)
 
     return results
