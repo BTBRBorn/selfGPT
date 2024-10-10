@@ -12,7 +12,7 @@ import utils
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('--learning_rate', type=float, default=3e-4)
+parser.add_argument('--learning_rate', type=float, default=6e-4)
 parser.add_argument('--max_iter', type=int, default=500)
 parser.add_argument('--batch_size', type=int, default=16)
 parser.add_argument('--n_layer', type=int, default=8)
@@ -26,7 +26,7 @@ parser.add_argument('--data_path', type=str, default='data/')
 parser.add_argument('--checkpoint_path', type=str, default='checkpoints/')
 parser.add_argument('--dataloader_num_workers', type=int, default=4)
 parser.add_argument('--val_iter', type=int, default=100)
-parser.add_argument('--print_intervals', type=int, default=100)
+parser.add_argument('--val_intervals', type=int, default=100)
 parser.add_argument('--resume_checkpoint', type=int, default=0)
 parser.add_argument('--verbose', type=int, default=1)
 parser.add_argument('--compile_model', type=int, default=0)
@@ -52,7 +52,7 @@ class Config:
     checkpoint_path: str = args.checkpoint_path
     dataloader_num_workers: int = args.dataloader_num_workers
     val_iter: int = args.val_iter
-    print_intervals: int = args.print_intervals
+    val_intervals: int = args.val_intervals
     resume_checkpoint: bool = args.resume_checkpoint
     verbose: int = args.verbose
     compile_model: int = args.compile_model
@@ -69,11 +69,13 @@ if not checkpoint_path.exists():
 if not config.resume_checkpoint:
     gpt = model.GPT(config).to(device)
     optimizer = torch.optim.Adam(gpt.parameters(), lr=config.learning_rate)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5)
     results = {'train_loss': [], 'val_loss': []}
 else:
-    return_dict = utils.load_checkpoint(checkpoint_path / Path('checkpoint.tar'), config.learning_rate)
+    return_dict = utils.load_checkpoint(checkpoint_path / Path('checkpoint.tar'))
     gpt = return_dict['model']
     optimizer = return_dict['optimizer']
+    scheduler = return_dict['scheduler']
     results = return_dict['results']
 
 if config.verbose:
@@ -110,9 +112,10 @@ train_dataloader, val_dataloader = get_dataloader.create_dataloaders(meta_data, 
 train_iter = iter(train_dataloader)
 val_iter = iter(val_dataloader)
 
-gpt_results = engine.train(gpt, train_iter, val_iter, train_dataloader, val_dataloader, optimizer, config, results) 
+gpt_results = engine.train(gpt, train_iter, val_iter, train_dataloader, val_dataloader,
+                           optimizer, scheduler, config, results) 
 
-utils.save_checkpoint(checkpoint_path / Path('checkpoint.tar'), gpt, optimizer, config, gpt_results)
+utils.save_checkpoint(checkpoint_path / Path('checkpoint.tar'), gpt, optimizer, scheduler, config, gpt_results)
 
 #Generate text with the model. By default it will generate 5 different versions.
 tokenizer = tiktoken.get_encoding('gpt2')

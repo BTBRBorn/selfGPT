@@ -57,6 +57,7 @@ def train(model,
           train_dataloader,
           val_dataloader,
           optimizer,
+          scheduler,
           config,
           results):
 
@@ -70,25 +71,29 @@ def train(model,
         end = time.time()
         total_tokens += num_tokens
         total_seconds += end-start
-        if i % config.print_intervals == 0:
+        if i % config.val_intervals == 0:
             tokens_per_sec = total_tokens / total_seconds
             total_tokens, total_seconds = 0, 0
             val_loss = val_step(model, val_iter, val_dataloader, config)
             results['train_loss'].append(train_loss)
             results['val_loss'].append(val_loss)
+            scheduler.step(val_loss)
+            lr = scheduler.get_last_lr()
             print_str = f"Iter: {i}, Train Loss: {results['train_loss'][-1]}, " + \
-                        f"Val Loss: {results['val_loss'][-1]}, tokens/sec: {tokens_per_sec:.2f} " + \
-                        f"Norm: {norm:.2f}"
+                        f"Val Loss: {results['val_loss'][-1]}, tokens/sec: {tokens_per_sec:.2f}, " + \
+                        f"Norm: {norm:.2f}, learning_rate: {lr}"
             print(print_str)
     #If already not printed, print the last result and add them to results dict
-    if i % config.print_intervals != 0:
+    if i % config.val_intervals != 0:
         tokens_per_sec = total_tokens / total_seconds
         val_loss = val_step(model, val_iter, val_dataloader, config)
         results['train_loss'].append(train_loss)
         results['val_loss'].append(val_loss)
+        scheduler.step(val_loss)
+        lr = scheduler.get_last_lr()
         print_str = f"Iter: {i}, Train Loss: {results['train_loss'][-1]}, " + \
                     f"Val Loss: {results['val_loss'][-1]}, tokens/sec: {tokens_per_sec:.2f} " + \
-                    f"Norm: {norm:.2f}"
+                    f"Norm: {norm:.2f}, learning_rate: {lr}"
         print(print_str)
 
     return results
