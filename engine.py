@@ -9,23 +9,30 @@ def train_step(model,
                optimizer,
                config):
 
-    try:
-        x, y = next(train_iter)
-    except StopIteration: 
-        train_iter = iter(train_dataloader)
-        x, y = next(train_iter)
-
-    x, y = x.to(config.device), y.to(config.device)
-
+    model.train()
     optimizer.zero_grad()
-    with torch.autocast(device_type=config.device, dtype=torch.bfloat16): #Mixed Precision
-        logits = model(x)
-        loss = F.cross_entropy(logits.view(config.batch_size*config.block_size, config.vocab_size),
-                            y.view(config.batch_size*config.block_size))
-    loss.backward()
+    loss_accum = 0.0
+    #Batch accumulation
+    for i in range(config.num_batch_accum):
+        try:
+            x, y = next(train_iter)
+        except StopIteration: 
+            train_iter = iter(train_dataloader)
+            x, y = next(train_iter)
+
+        x, y = x.to(config.device), y.to(config.device)
+
+        with torch.autocast(device_type=config.device, dtype=torch.bfloat16): #Mixed Precision
+            logits = model(x)
+            loss = F.cross_entropy(logits.view(config.batch_size*config.block_size, config.vocab_size),
+                                    y.view(config.batch_size*config.block_size)) 
+
+        loss = loss / config.num_batch_accum
+        loss.backward()
+        loss_accum += loss.detach().item() 
     norm = torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
     optimizer.step()
-    return loss.item(), norm
+    return loss_accum, norm
 
 def val_step(model, 
              val_iter,
@@ -48,7 +55,6 @@ def val_step(model,
                 loss = F.cross_entropy(logits.view(config.batch_size*config.block_size, config.vocab_size),
                                     y.view(config.batch_size*config.block_size))
             total_loss += loss.item()
-    model.train()
     return total_loss / config.val_iter
 
 def train(model,
@@ -61,7 +67,7 @@ def train(model,
           config,
           results):
 
-    num_tokens = config.batch_size * config.block_size
+    num_tokens = config.batch_size * config.block_size * config.num_batch_accum
     total_tokens = 0
     total_seconds = 0
     for i in tqdm(range(config.max_iter)):
@@ -92,7 +98,7 @@ def train(model,
         scheduler.step(val_loss)
         lr = scheduler.get_last_lr()
         print_str = f"Iter: {i}, Train Loss: {results['train_loss'][-1]}, " + \
-                    f"Val Loss: {results['val_loss'][-1]}, tokens/sec: {tokens_per_sec:.2f} " + \
+                    f"Val Loss: {results['val_loss'][-1]}, tokens/sec: {tokens_per_sec:.2f}, " + \
                     f"Norm: {norm:.2f}, learning_rate: {lr}"
         print(print_str)
 
