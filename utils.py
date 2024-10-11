@@ -21,10 +21,6 @@ def load_checkpoint(checkpoint_path) -> dict[str, Any]:
 
     optimizer = torch.optim.Adam(gpt.parameters())
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    #load_state_dict overwrites learning rate at initialization
-    #This is how we set it up to learning_rate pass down to the function
-    #for param_group in optimizer.param_groups:
-    #    param_group['lr'] = learning_rate
 
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
     scheduler.load_state_dict(checkpoint['scheduler'])
