@@ -19,7 +19,8 @@ if __name__ == '__main__':
     parser.add_argument('--data_path', type=str, default='data/')
     parser.add_argument('--tokenizer_path', type=str, default=None)
     parser.add_argument('--tokenizer_type', type=str, default='base', choices=['base', 'regex'])
-
+    parser.add_argument('--streaming', type=int, default=0, choices=[0, 1])
+    parser.add_argument('--tokens_threshold', type=int, default=int(1e20)) 
     args = parser.parse_args()
 
     @dataclass
@@ -28,6 +29,8 @@ if __name__ == '__main__':
         data_path: str = args.data_path
         tokenizer_path: str | None = args.tokenizer_path
         tokenizer_type: str = args.tokenizer_type
+        streaming: int = args.streaming
+        tokens_threshold: int = args.tokens_threshold
 
     config = Config()
 
@@ -51,7 +54,10 @@ if __name__ == '__main__':
     if not data_path.exists():
         data_path.mkdir()
 
-    dataset = load_dataset('HuggingFaceFW/fineweb', name='sample-10BT', split='train')
+    if config.streaming:
+        dataset = load_dataset('HuggingFaceFW/fineweb', name='sample-10BT', split='train', streaming=True)
+    else:
+        dataset = load_dataset('HuggingFaceFW/fineweb', name='sample-10BT', split='train')
 
     EOT = tokenizer._special_tokens['<|endoftext|>'] 
     
@@ -70,10 +76,12 @@ if __name__ == '__main__':
     SHARD_SIZE_THRESHOLD = config.shard_size_threshold
     tokens_list = []
     meta_data = []
+    total_token_count = 0
     with mp.Pool(processes=num_cpu) as pool:
         for tokens in pool.imap(tokenize, dataset, chunksize=64):
             tokens_list.append(tokens)
             NUM_TOKENS += len(tokens)
+            total_token_count += len(tokens)
             if SHARD_SIZE_THRESHOLD < NUM_TOKENS:
                 chunk_path = data_path / Path(f'shard_{NUM_SHARD}.npy')
                 shard = np.concatenate(tokens_list)
@@ -82,15 +90,19 @@ if __name__ == '__main__':
                 NUM_SHARD += 1
                 NUM_TOKENS = 0
                 tokens_list = []
+            if total_token_count >= config.tokens_threshold:
+                break
 
-    chunk_path = data_path / Path(f'shard_{NUM_SHARD}.npy')
-    shard = np.concat(tokens_list)
-    meta_data.append({'num_shard':NUM_SHARD, 'shard_size':NUM_TOKENS})
-    np.save(chunk_path, shard)
+    
+    if len(tokens_list) != 0:
+        chunk_path = data_path / Path(f'shard_{NUM_SHARD}.npy')
+        shard = np.concat(tokens_list)
+        meta_data.append({'num_shard':NUM_SHARD, 'shard_size':NUM_TOKENS})
+        np.save(chunk_path, shard)
 
     meta_data_path = data_path / Path('meta_data.pickle')
     sorted(meta_data, key=lambda x: x['num_shard'])
     for d in meta_data:
-        d['path'] = (Path('data/') / Path(f'shard_{d["num_shard"]}.npy')).absolute()
+        d['path'] = (Path(config.data_path) / Path(f'shard_{d["num_shard"]}.npy')).absolute()
     with open(meta_data_path, 'wb') as handle:
         pickle.dump(meta_data, handle)
