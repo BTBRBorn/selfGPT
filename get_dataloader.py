@@ -51,7 +51,8 @@ def create_dataloaders(meta_data: dict[str, Any], config):
     train_dataset = CustomDataset(meta_data_train, config)
     val_dataset = CustomDataset(meta_data_val, config)
 
-    train_dataloaders = DataLoader(train_dataset, config.batch_size, shuffle=True, num_workers=num_workers)
-    val_dataloaders = DataLoader(val_dataset, config.batch_size, shuffle=True, num_workers=num_workers)
+    train_dataloaders = DataLoader(train_dataset, config.batch_size, shuffle=True,
+                                   num_workers=num_workers, drop_last=True)
+    val_dataloaders = DataLoader(val_dataset, config.batch_size, shuffle=True, drop_last=True)
 
     return train_dataloaders, val_dataloaders

@@ -20,21 +20,44 @@ To download and process the data we use download_data.py. You can just type foll
 
 `python download_data.py`
 
-Using this way by default, it will download, tokenize with tiktoken gpt2 tokenize and shard FineWebEdu 10BT dataset into
-the data/ folder. If you trained your own tokenizer using tokenizer.py and saved it to dick then you can provide the path as follows:
+Arguments:
+    --shard_size_threshold: Threshold for shard sizes in terms of tokens.
+    --data_path: Path of the folder to save all the shards.
+    --tokenizer_path: If you trained and saved a tokenizer using tokenizer.py, by providing the path you can use it for
+    tokenization.
+    --streaming: Instead of downloading the dataset, you can set this parameter to 1. Then it will create the shards without downloading the dataset.
+    --tokens_threshold: Threshold for the total count of the tokens inside all shards.
+
+Examples:
 
 `python download_data.py --tokenizer_path=path/to/tokenizer`
 
-Datasets required for pretraining LLMs are quite big so you may not want to download it in addition to the shards will be created in the data_path. In that case, you can provide --streaming and --tokens_threshold like this:
+Datasets required for pretraining of LLMs are quite big so you may not want to download it in addition to the shards will be created in the data_path. In that case, you can provide --streaming and --tokens_threshold like this:
+In this case, it will download the dataset and also sharding will stop at after you reach more 10 millions tokens.
 
 `python download_data.py --streaming=1 --tokens_threshold=10000000`
-
-In this case, it will download the dataset and also sharding will stop at after you reach more 10 millions tokens.
-There are other CLI arguments you can use (like shard_size), you can check them in download_data.py.
 
 After you download the data, you can start training with default arguments like this:
 
 `python train.py`
+Arguments:
+    --learning_rate: Initial learning rate of the model.
+    --max_iter: Number of training iterations.
+    --num_batch_accum: Number of batches over which gradient will be accumulated.
+    --batch_size: Batch size of the data.
+    --n_layer: Number of Blocks inside the model.
+    --vocab_size: Vocabulary size of the tokenizer.
+    --block_size: Context length of the input.
+    --n_head: Number of heads inside masked attention layer.
+    --head_size: Output of each head
+    --data_path: Path of the data
+    --checkpoint_path: Path of the checkpoint. Model, optimizer and learning rate scheduler will be saved.
+    --dataloader_num_workers: Number of processes will be used with dataloaders.
+    --val_iter: Number of iterations will be used for evaluating the validation loss.
+    --val_intervals: Validation loss will be checked every val_intervals.
+    --resume_checkpoint: Instead of starting new, resume from checkpoint.
+    --verbose: Whether or not print info about the training run.
+    --compile_model: Whether or not use torch.compile to compile the model.
 
 # Future Directions
 So far I implemented pretraining part. You can also do finetuning as well by switching to a training set consists of Q&A

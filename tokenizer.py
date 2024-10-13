@@ -37,10 +37,8 @@ def merge(tokens, pair, idx):
     return new_tokens
         
 class BaseTokenizer:
-    def __init__(self, vocab_size, encoding='utf-8'):
+    def __init__(self, encoding='utf-8'):
         assert encoding in ('utf-8', 'utf-16', 'utf-32'), "Encoding has to be 'utf-8', 'utf-16' or 'utf-32'"
-        assert vocab_size > 256, 'Vocab size has to be bigger than 256'
-        self.vocab_size = vocab_size
         self.encoding = encoding
         self.vocab = {}
         self.merges = {}
@@ -52,12 +50,13 @@ class BaseTokenizer:
         for idx, token in special_tokens_dict.items():
             self.vocab[idx] = token.encode(encoding=self.encoding)
             self._special_tokens[token] = idx
-            self.vocab_size += 1
 
-    def train(self, text, special_tokens:list[str] = ['<|endoftext|>'], verbose=False):
+    def train(self, text, vocab_size, special_tokens:list[str] = ['<|endoftext|>'], verbose=False):
+        assert vocab_size > 256, 'Vocab size has to be bigger than 256'
         tokens = text.encode(encoding=self.encoding)
-        num_merges = self.vocab_size - 256
+        num_merges = vocab_size - 256
         self.vocab = {idx:bytes([idx]) for idx in range(256)}
+        self.merges = {}
         for i in range(num_merges):
             idx = 256 + i
             stats = {}
@@ -71,7 +70,7 @@ class BaseTokenizer:
 
         special_tokens_dict = {}
         for i, token in enumerate(special_tokens):
-            special_tokens_dict[self.vocab_size + i] = token
+            special_tokens_dict[vocab_size + i] = token
         self.set_special_tokens(special_tokens_dict)
             
         return tokens
@@ -96,29 +95,27 @@ class BaseTokenizer:
         with open(path, 'wb') as handle:
             pickle.dump(self, handle)
 
-    def load(self, load_path: str | Path):
-        print(f'Warning: {self.__class__.__name__}.load method overwrites all class attributes including vocab_size')
-        path = Path(load_path)
-        with open(path, 'rb') as handle:
-            loaded_tok = pickle.load(handle)
-        assert self.__class__ == loaded_tok.__class__, \
-               f'Self ({self.__class__.__name__}) and loaded tokenizer ({loaded_tok.__class__.__name__}) are not the same class'
+    def load(self, tokenizer):
+        assert self.__class__ == tokenizer.__class__, \
+               f'Self ({self.__class__.__name__}) and loaded tokenizer ({tokenizer.__class__.__name__}) are not the same class'
 
-        for att_name in loaded_tok.__dict__:
+        for att_name in tokenizer.__dict__:
             if hasattr(self, att_name):
-                self.__dict__[att_name] = loaded_tok.__dict__[att_name]
+                self.__dict__[att_name] = tokenizer.__dict__[att_name]
 
 class RegexTokenizer(BaseTokenizer):
-    def __init__(self, vocab_size, encoding='utf-8', regex_pattern=GPT4_SPLIT_PATTERN):
-        super().__init__(vocab_size, encoding)
+    def __init__(self, encoding='utf-8', regex_pattern=GPT4_SPLIT_PATTERN):
+        super().__init__(encoding)
         self.regex_pattern = regex_pattern
         self.compiled_pattern = re.compile(self.regex_pattern)
 
-    def train(self, text:str, special_tokens:list[str] = ['<|endoftext|>'], verbose=False):
+    def train(self, text:str, vocab_size, special_tokens:list[str] = ['<|endoftext|>'], verbose=False):
+        assert vocab_size > 256, 'Vocab size has to be bigger than 256'
         text_chunks = re.findall(self.compiled_pattern, text)
         token_chunks = [list(chunk.encode(encoding=self.encoding)) for chunk in text_chunks]
-        num_merges = self.vocab_size - 256
+        num_merges = vocab_size - 256
         self.vocab = {idx:bytes([idx]) for idx in range(256)}
+        self.merges = {}
         for num_merge in range(num_merges):
             stats = {}
             for chunk in token_chunks:
@@ -138,7 +135,7 @@ class RegexTokenizer(BaseTokenizer):
 
         special_tokens_dict = {}
         for i, token in enumerate(special_tokens):
-            special_tokens_dict[self.vocab_size + i] = token
+            special_tokens_dict[vocab_size + i] = token
         self.set_special_tokens(special_tokens_dict)
          
         return tokens

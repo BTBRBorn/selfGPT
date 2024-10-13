@@ -14,6 +14,7 @@ def train_step(model,
     loss_accum = 0.0
     #Batch accumulation
     for i in range(config.num_batch_accum):
+
         try:
             x, y = next(train_iter)
         except StopIteration: 
@@ -39,21 +40,24 @@ def val_step(model,
              val_dataloader,
              config):
 
-    try:
-        x, y = next(val_iter)
-    except StopIteration: 
-        val_iter = iter(val_dataloader)
-        x, y = next(val_iter)
-    x, y = x.to(config.device), y.to(config.device)
-
     total_loss = 0
     model.eval()
     with torch.inference_mode():
         for _ in range(config.val_iter):
+
+            try:
+                x, y = next(val_iter)
+            except StopIteration: 
+                val_iter = iter(val_dataloader)
+                x, y = next(val_iter)
+
+            x, y = x.to(config.device), y.to(config.device)
+
             with torch.autocast(device_type=config.device, dtype=torch.bfloat16):#Mixed Precision
                 logits = model(x)
                 loss = F.cross_entropy(logits.view(config.batch_size*config.block_size, config.vocab_size),
                                     y.view(config.batch_size*config.block_size))
+
             total_loss += loss.item()
     return total_loss / config.val_iter
 

@@ -18,7 +18,6 @@ if __name__ == '__main__':
     parser.add_argument('--shard_size_threshold', type=int, default=int(1e7))
     parser.add_argument('--data_path', type=str, default='data/')
     parser.add_argument('--tokenizer_path', type=str, default=None)
-    parser.add_argument('--tokenizer_type', type=str, default='base', choices=['base', 'regex'])
     parser.add_argument('--streaming', type=int, default=0, choices=[0, 1])
     parser.add_argument('--tokens_threshold', type=int, default=int(1e20)) 
     args = parser.parse_args()
@@ -28,7 +27,6 @@ if __name__ == '__main__':
         shard_size_threshold: int = args.shard_size_threshold
         data_path: str = args.data_path
         tokenizer_path: str | None = args.tokenizer_path
-        tokenizer_type: str = args.tokenizer_type
         streaming: int = args.streaming
         tokens_threshold: int = args.tokens_threshold
 
@@ -38,14 +36,16 @@ if __name__ == '__main__':
     #you can use that too by providing --tokenizer_path and --tokenizer_type arguments
     #If you don't it will use tiktoken gpt2 tokenizer
     if config.tokenizer_path is not None:
-        if args.tokenizer_type == 'base':
+        with open(Path(config.tokenizer_path), 'rb') as handle:
+            tokenizer = pickle.load(handle)
+        if 'Base' in tokenizer.__class__.__name__:
             #vocab size will be overwritten so doesn't matter what number it is
-            tokenizer = Tokenizer.BaseTokenizer(vocab_size = 288)
-            tokenizer.load(Path(args.tokenizer_path))
-        elif args.tokenizer_type == 'regex':
+            tokenizer = Tokenizer.BaseTokenizer()
+            tokenizer.load(tokenizer)
+        elif 'Regex' in tokenizer.__class__.__name__:
             #vocab size will be overwritten so doesn't matter what number it is
-            tokenizer = Tokenizer.RegexTokenizer(vocab_size = 288)
-            tokenizer.load(Path(args.tokenizer_path))
+            tokenizer = Tokenizer.RegexTokenizer()
+            tokenizer.load(tokenizer)
     else:
         #By default gpt2 tiktoken tokenizer will be used
         tokenizer = tiktoken.get_encoding('gpt2')
