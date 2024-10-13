@@ -89,10 +89,13 @@ Arguments:
     
 
 # Future Directions
-For pretraining phase, one idea I had for a while was the replace every linear layer with something like Kolmogorov-Arnold Networks.
-So far I implemented pretraining part. You can also do finetuning as well by switching to a training set consists of Q&A
-style text of course to get an AI agent. However, nowadays post-training and inference time computing are quite important as well. 
+So far I implemented pretraining part. For pretraining phase, one idea I had for a while was the replace every linear layer with something like Kolmogorov-Arnold Networks. 
+
+After pretraining, you can immediately do finetuning as well by switching to a training set consists of Q&A
+style text to get an AI agent.
+
+However, nowadays post-training and inference time computing are quite important as well.
 I am especially quite excited about inference time computing and self-play style reinforcement learning.
-It seems to me that if we want to get more fluid intelligence (especially if your model is relatively small), we need
+It seems to me that if we want to get more fluid intelligence, we need 
 inference time training. And if we want these systems to be more capable than us at certain task, we also need self play
 style reinforcement learning.
