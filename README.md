@@ -3,7 +3,7 @@ This is my attempt to create an LLM like Claude or chatGPT. So far what I have g
 module on a single gpu. Because multi gpu training is expensive (quite expensive if you use thousands of them),
 I am focusing on trying to find a much more efficient model architecture that has same computational properties
 makes transformer architecture powerful. I am all about efficency. Even if in this case it is paramount to make
-the model more efficient, I love making a system more efficient without losing any performance in general.
+the model more efficient to achieve my objective, I love making a system more efficient without losing any performance in general.
 
 But why implement everything from scratch. There are many great open source pretrained models I can finetune to
 my needs, right? In my opinion, if you really want to understand every aspects of a system, you should build one from
@@ -11,17 +11,17 @@ scratch. And also I love doing it. It is so fun :). Another good reason, I want 
 architecture than already existing ones (inference and/or training).
 
 We will still need multi gpu training of course but if I can invent a more efficient architecture, I can find
-investment much more easily to train a multi gpu model.
+investment much more easily to train a multi gpu model, and build a team to help me.
 
 Since I wanted to experiment with different vocabulary sizes, I also wrote a tokenizer class that can be trained with BPE.
 
-So far I used it only with my laptop's gpu (Nvidia GeForce RTX 3600 6G). I got validation loss around 3.9 without even
+So far I used this module only with my laptop's gpu (Nvidia GeForce RTX 3600 6G). I got validation loss around 3.9 without even
 trying (FineWebEdu 10BT dataset). This was only for confirming that everything works properly. I will run a real training run with a P100 and share the results.
 
 # Usage
 Even though module is written for personal use for now, I still think someone might want use it so I will share
 code snippets here on how to train a model with it.
-To download and process the data we use download_data.py. You can just type following in terminal:
+To download and process the data into shards in the form of numpy arrays, we use download_data.py. The dataset is FineWebEdu 10TB. It is hardcoded but if you like you can change it by changing one line inside download_data.py. You can just type following in terminal:
 
 `python download_data.py`
 
@@ -31,12 +31,14 @@ Arguments:
     
     --data_path: Path of the folder to save all the shards.
     
-    --tokenizer_path: If you trained and saved a tokenizer using tokenizer.py, by providing the path you can use it for
-    tokenization.
+    --tokenizer_path: If you trained and saved a tokenizer using tokenizer.py, by providing the path you can 
+                      use it for tokenization.
     
-    --streaming: Instead of downloading the dataset, you can set this parameter to 1. Then it will create the shards without downloading the dataset.
+    --streaming: Instead of downloading the dataset, you can set this parameter to 1. Then it will create the shards
+                 without downloading the dataset.
     
-    --tokens_threshold: Threshold for the total count of the tokens inside all shards.
+    --tokens_threshold: Threshold for the total count of the tokens inside all shards. Default value is quite big so 
+                        if don't provide a value whole datatset will be processed.
     
 
 Examples:
@@ -89,12 +91,12 @@ Arguments:
     
 
 # Future Directions
-So far I implemented pretraining part. For pretraining phase, one idea I had for a while was the replace every linear layer with something like Kolmogorov-Arnold Networks. 
+So far I implemented pretraining part. For pretraining phase, one idea I had for a while to improve the transformer architecture is the replace every linear layer with something like Kolmogorov-Arnold Network. 
 
-After pretraining, you can immediately do finetuning as well by switching to a training set consists of Q&A
+After pretraining, you can immediately do finetuning as well, by switching to a training set consists of Q&A
 style text to get an AI agent.
 
-However, nowadays post-training and inference time computing are quite important as well.
+Nowadays, post-training and inference time computing are quite important as well.
 I am especially quite excited about inference time computing and self-play style reinforcement learning.
 It seems to me that if we want to get more fluid intelligence, we need 
 inference time training. And if we want these systems to be more capable than us at certain task, we also need self play
