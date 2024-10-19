@@ -1,5 +1,5 @@
 # About
-This is my attempt to create an LLM like Claude or chatGPT. So far what I have gpt like model training
+This is my attempt to create an LLM. So far what I have gpt like model training
 module on a single gpu. Because multi gpu training is expensive (quite expensive if you use thousands of them),
 I am focusing on trying to find a much more efficient model architecture that has same computational properties
 makes transformer architecture powerful. I am all about efficency. Even if in this case it is paramount to make
