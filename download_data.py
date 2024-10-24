@@ -96,7 +96,7 @@ if __name__ == '__main__':
     
     if len(tokens_list) != 0:
         chunk_path = data_path / Path(f'shard_{NUM_SHARD}.npy')
-        shard = np.concat(tokens_list)
+        shard = np.concatenate(tokens_list)
         meta_data.append({'num_shard':NUM_SHARD, 'shard_size':NUM_TOKENS})
         np.save(chunk_path, shard)
 
