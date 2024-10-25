@@ -2,16 +2,12 @@
 This is my attempt to create an LLM. So far what I have gpt like model training
 module on a single gpu. Because multi gpu training is expensive (quite expensive if you use thousands of them),
 I am focusing on trying to find a much more efficient model architecture that has same computational properties
-makes transformer architecture powerful. I am all about efficency. Even if in this case it is paramount to make
-the model more efficient to achieve my objective, I love making a system more efficient without losing any performance in general.
+makes transformer architecture powerful.
 
 But why implement everything from scratch. There are many great open source pretrained models I can finetune to
 my needs, right? In my opinion, if you really want to understand every aspects of a system, you should build one from
 scratch. And also I love doing it. It is so fun :). Another good reason, I want to invent much more efficient model
-architecture than already existing ones (inference and/or training).
-
-We will still need multi gpu training of course but if I can invent a more efficient architecture, I can find
-investment much more easily to train a multi gpu model, and build a team to help me.
+architecture than already existing ones (inference and/or training). We will still need multi gpu training of course but if I can invent a more efficient architecture, I can find investment much more easily to train a multi gpu model, and build a team to help me.
 
 Since I wanted to experiment with different vocabulary sizes, I also wrote a tokenizer class that can be trained with BPE.
 
