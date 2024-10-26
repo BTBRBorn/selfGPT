@@ -6,13 +6,9 @@ makes transformer architecture powerful.
 
 But why implement everything from scratch. There are many great open source pretrained models I can finetune to
 my needs, right? In my opinion, if you really want to understand every aspects of a system, you should build one from
-scratch. And also I love doing it. It is so fun :). Another good reason, I want to invent much more efficient model
-architecture than already existing ones (inference and/or training). We will still need multi gpu training of course but if I can invent a more efficient architecture, I can find investment much more easily to train a multi gpu model, and build a team to help me.
+scratch. And also I love doing it. It is so fun :). And I am also using this module to test different transformer variants.
 
 Since I wanted to experiment with different vocabulary sizes, I also wrote a tokenizer class that can be trained with BPE.
-
-So far I used this module only with my laptop's gpu (Nvidia GeForce RTX 3600 6G). I got validation loss around 3.9 without even
-trying (FineWebEdu 10BT dataset). This was only for confirming that everything works properly. I will run a real training run with a P100 and share the results.
 
 # Usage
 Even though module is written for personal use for now, I still think someone might want use it so I will share
