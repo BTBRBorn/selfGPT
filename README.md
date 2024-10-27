@@ -86,7 +86,7 @@ Arguments:
 So far I implemented pretraining part. For pretraining phase, one idea I had for a while to improve the transformer architecture is the replace every linear layer with something like Kolmogorov-Arnold Network. 
 
 After pretraining, you can immediately do finetuning as well, by switching to a training set consists of Q&A
-style text to get an AI agent.
+style text to get an AI chatbot.
 
 Nowadays, post-training and inference time computing are quite important as well.
 I am especially quite excited about inference time computing and self-play style reinforcement learning.
