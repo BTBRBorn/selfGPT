@@ -87,6 +87,7 @@ if __name__ == '__main__':
                 shard = np.concatenate(tokens_list)
                 np.save(chunk_path, shard)
                 meta_data.append({'num_shard':NUM_SHARD, 'shard_size':NUM_TOKENS})
+                print(f'num_shard: {NUM_SHARD}, shard_size: {NUM_TOKENS}')
                 NUM_SHARD += 1
                 NUM_TOKENS = 0
                 tokens_list = []

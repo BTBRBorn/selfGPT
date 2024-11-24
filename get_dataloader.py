@@ -31,10 +31,10 @@ class CustomDataset(Dataset):
                 #code will choose the next shard's first example as x and y
                 if remainder == 0 and (shard_num_examples*block_size == s_info['shard_size']):
                     shard_index = 0
-                    tokens_np = np.load(self.meta_data[i+1]['path'])
+                    tokens_np = np.load(self.meta_data[i+1]['path'], mmap_mode='r')
                 else:
                     shard_index = shard_num_examples + remainder - 1
-                    tokens_np = np.load(shard_path)
+                    tokens_np = np.load(shard_path, mmap_mode='r')
                 buff = tokens_np[shard_index*block_size:(shard_index+1)*block_size + 1]
                 x, y = buff[:-1], buff[1:]
                 x = torch.tensor(x, dtype=torch.long)
