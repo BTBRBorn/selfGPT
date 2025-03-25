@@ -83,13 +83,10 @@ Arguments:
     
 
 # Future Directions
-So far I implemented pretraining part. For pretraining phase, one idea I had for a while to improve the transformer architecture is the replace every linear layer with something like Kolmogorov-Arnold Network. 
-
 After pretraining, you can immediately do finetuning as well, by switching to a training set consists of Q&A
 style text to get an AI chatbot.
 
 Nowadays, post-training and inference time computing are quite important as well.
-I am especially quite excited about inference time computing and self-play style reinforcement learning.
-It seems to me that if we want to get more fluid intelligence, we need 
-inference time training. And if we want these systems to be more capable than us at certain task, we also need self play
-style reinforcement learning.
+I am especially quite excited about inference time computing something like finetuning with reinforcement learning
+on tasks require reasoning. It seems to me that if we want to get more fluid intelligence, we need 
+inference time training as well. 
